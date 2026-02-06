@@ -231,6 +231,26 @@ function formatWebResults(results: BraveSearchResult[]): string {
     .join("\n\n");
 }
 
+function logWebResults(requestId: string, results: BraveSearchResult[]): void {
+  const lines: string[] = [
+    "",
+    "[concierge] web_search_results",
+    `  requestId: ${requestId}`,
+    `  count: ${results.length}`,
+    "",
+    ...results.map((r, i) => {
+      const n = i + 1;
+      return [
+        `  --- ${n}. ${r.title}`,
+        `      ${r.url}`,
+        `      ${r.snippet.replace(/\n/g, " ").slice(0, 120)}${r.snippet.length > 120 ? "…" : ""}`,
+      ].join("\n");
+    }),
+    "",
+  ];
+  console.log(lines.join("\n"));
+}
+
 /** Layer 2: answer using tier-specific prompt + context + web results. */
 async function answer(
   userMessage: string,
@@ -305,6 +325,8 @@ export async function POST(req: Request) {
       );
     }
 
+  logMeta("user_message", { text: message });
+
   const t0 = Date.now();
   const tier = await classify(message, requestId, (meta) =>
     logMeta("classification", meta)
@@ -326,6 +348,9 @@ export async function POST(req: Request) {
       resultCount: webResults.length,
       elapsedMs: searchMs,
     });
+    if (webResults.length > 0) {
+      logWebResults(requestId, webResults);
+    }
   }
 
     const content = await answer(

@@ -145,8 +145,8 @@ export function ChatUI({
   );
 
   return (
-    <>
-      <div className="px-4 pt-4">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="shrink-0 px-4 pt-4">
         <div className="grid grid-cols-2 gap-2.5">
           {quickBtn(
             <Sparkles className="h-4 w-4" />,
@@ -171,7 +171,7 @@ export function ChatUI({
         </div>
       </div>
 
-      <div className="mt-4 flex-1 overflow-auto px-4 pb-4">
+      <div className="mt-4 min-h-0 flex-1 overflow-auto px-4 pb-4">
         <div className="space-y-3">
           <AnimatePresence initial={false}>
             {messages.map((m) => (
@@ -254,7 +254,7 @@ export function ChatUI({
 
       <div
         className={cn(
-          "border-t p-4",
+          "shrink-0 border-t p-4",
           muted ? "border-white/10" : "border-amber-500/15",
         )}
       >
@@ -285,6 +285,6 @@ export function ChatUI({
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

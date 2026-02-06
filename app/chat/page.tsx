@@ -27,11 +27,11 @@ function ChatPageContent() {
       <header className="shrink-0 border-b border-white/10 bg-[#0B0E12]/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
           <Link
-            href={dealId ? `/deal/${dealId}` : "/"}
+            href="/"
             className="inline-flex items-center gap-2 text-[12px] text-white/60 hover:text-white/80"
           >
             <ArrowLeft className="h-4 w-4" />
-            {dealId ? "Back to deal" : "Dashboard"}
+            Home
           </Link>
           <div className="flex items-center gap-2">
             <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/15 bg-white/[0.04]">
@@ -51,7 +51,7 @@ function ChatPageContent() {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col min-h-0">
         <ChatUI
           messages={chat.messages}
           draft={chat.draft}
