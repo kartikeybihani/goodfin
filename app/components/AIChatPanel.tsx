@@ -3,7 +3,14 @@
 import * as React from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, ChevronRight, Sparkles, X } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronRight,
+  CircleDollarSign,
+  ShieldAlert,
+  Sparkles,
+  X,
+} from "lucide-react";
 
 import type { Company, ConciergeMessage } from "@/app/lib/types";
 import { cn } from "@/app/lib/utils";
@@ -16,12 +23,15 @@ function uid() {
 
 async function fetchConciergeReply(
   message: string,
-  contextCompany: Company | undefined
+  contextCompany: Company | undefined,
 ): Promise<{ content: string }> {
   const requestId = `ui_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const res = await fetch("/api/concierge", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-concierge-request-id": requestId },
+    headers: {
+      "Content-Type": "application/json",
+      "x-concierge-request-id": requestId,
+    },
     body: JSON.stringify({
       message,
       contextCompany: contextCompany ?? null,
@@ -146,7 +156,8 @@ export function AIChatPanel({
     setMessages((prev) => {
       const next = [...prev];
       const last = next[next.length - 1];
-      if (last?.role === "assistant") next[next.length - 1] = { ...last, content };
+      if (last?.role === "assistant")
+        next[next.length - 1] = { ...last, content };
       return next;
     });
   }, []);
@@ -161,13 +172,13 @@ export function AIChatPanel({
         setLastAssistantContent(content);
       } catch (e) {
         setLastAssistantContent(
-          `Sorry, something went wrong: ${e instanceof Error ? e.message : String(e)}`
+          `Sorry, something went wrong: ${e instanceof Error ? e.message : String(e)}`,
         );
       } finally {
         setLoading(false);
       }
     },
-    [contextCompany, push, setLastAssistantContent]
+    [contextCompany, push, setLastAssistantContent],
   );
 
   function onQuick(text: string) {
@@ -193,27 +204,84 @@ export function AIChatPanel({
 
   const spring = { type: "spring" as const, stiffness: 420, damping: 36 };
 
-  /** Loading dots for assistant "thinking" state */
-  const LoadingDots = () => (
-    <div className="flex items-center gap-1 py-0.5" aria-hidden>
-      {[0, 1, 2].map((i) => (
-        <motion.span
-          key={i}
-          className="h-1.5 w-1.5 rounded-full bg-amber-400/90"
-          animate={{ y: [0, -5, 0], opacity: [0.6, 1, 0.6] }}
-          transition={{
-            duration: 0.6,
-            repeat: Infinity,
-            delay: i * 0.12,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
+  const LOADING_MESSAGES = [
+    "Looking over deal flows…",
+    "Checking secondary tape…",
+    "Scanning allocation signals…",
+    "Reviewing key terms…",
+    "Cross-referencing comparable deals…",
+    "Pulling recent pricing data…",
+    "Assessing risk factors…",
+    "Checking investor activity…",
+    "Reviewing cap table context…",
+    "Scanning market insights…",
+    "Gathering deal summary…",
+    "Checking valuation trends…",
+    "Reviewing liquidity signals…",
+    "Pulling news and updates…",
+    "Synthesizing recommendations…",
+  ];
+
+  const [loadingMessageIndex, setLoadingMessageIndex] = React.useState(0);
+  React.useEffect(() => {
+    if (!loading) {
+      setLoadingMessageIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLoadingMessageIndex((i) => (i + 1) % LOADING_MESSAGES.length);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  /** Loading dots + rotating status for assistant "thinking" state */
+  const LoadingState = () => (
+    <div className="space-y-2 py-0.5" aria-hidden>
+      <div className="flex items-center gap-1">
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            className="h-1.5 w-1.5 rounded-full bg-amber-400/90"
+            animate={{ y: [0, -5, 0], opacity: [0.6, 1, 0.6] }}
+            transition={{
+              duration: 0.6,
+              repeat: Infinity,
+              delay: i * 0.12,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+      <motion.p
+        key={loadingMessageIndex}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 0.7, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="text-[11px] text-white/50"
+      >
+        {LOADING_MESSAGES[loadingMessageIndex]}
+      </motion.p>
     </div>
   );
 
   const isPlaceholder = (m: ConciergeMessage) =>
     m.role === "assistant" && (m.content === "…" || m.content.trim() === "");
+
+  /** Renders text with **word** → bold */
+  const renderWithBold = (text: string) => {
+    const parts: (string | React.ReactNode)[] = [];
+    const re = /\*\*(.+?)\*\*/g;
+    let lastIdx = 0;
+    let match;
+    let key = 0;
+    while ((match = re.exec(text)) !== null) {
+      parts.push(text.slice(lastIdx, match.index));
+      parts.push(<strong key={key++}>{match[1]}</strong>);
+      lastIdx = match.index + match[0].length;
+    }
+    parts.push(text.slice(lastIdx));
+    return parts;
+  };
 
   const asideContent = (
     <motion.aside
@@ -270,41 +338,41 @@ export function AIChatPanel({
         </div>
 
         <div className="px-4 pt-4">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             <Button
               size="sm"
               variant="secondary"
-              className="border-amber-500/15 hover:bg-amber-500/10 hover:border-amber-500/25 text-white/90"
+              className="group h-10 gap-2 rounded-xl border-amber-500/15 bg-white/[0.02] font-medium transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-500/10 hover:shadow-[0_0_20px_-4px_rgba(251,146,60,0.2)] text-white/90"
               onClick={() => onQuick("Summarize this deal")}
             >
-              <Sparkles className="h-4 w-4 text-amber-300/80" />
+              <Sparkles className="h-4 w-4 shrink-0 text-amber-400/90 transition-colors group-hover:text-amber-300" />
               Summarize
             </Button>
             <Button
               size="sm"
               variant="secondary"
-              className="border-amber-500/15 hover:bg-amber-500/10 hover:border-amber-500/25 text-white/90"
+              className="group h-10 gap-2 rounded-xl border-amber-500/15 bg-white/[0.02] font-medium transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-500/10 hover:shadow-[0_0_20px_-4px_rgba(251,146,60,0.2)] text-white/90"
               onClick={() => onQuick("Key risks?")}
             >
-              <ChevronRight className="h-4 w-4 text-amber-300/80" />
+              <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400/90 transition-colors group-hover:text-amber-300" />
               Key risks
             </Button>
             <Button
               size="sm"
               variant="secondary"
-              className="border-amber-500/15 hover:bg-amber-500/10 hover:border-amber-500/25 text-white/90"
+              className="group h-10 gap-2 rounded-xl border-amber-500/15 bg-white/[0.02] font-medium transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-500/10 hover:shadow-[0_0_20px_-4px_rgba(251,146,60,0.2)] text-white/90"
               onClick={() => onQuick("Should I allocate $50k?")}
             >
-              <Check className="h-4 w-4 text-amber-300/80" />
+              <CircleDollarSign className="h-4 w-4 shrink-0 text-amber-400/90 transition-colors group-hover:text-amber-300" />
               Allocate $50k
             </Button>
             <Button
               size="sm"
               variant="secondary"
-              className="border-amber-500/15 hover:bg-amber-500/10 hover:border-amber-500/25 text-white/90"
+              className="group h-10 gap-2 rounded-xl border-amber-500/15 bg-white/[0.02] font-medium transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-500/10 hover:shadow-[0_0_20px_-4px_rgba(251,146,60,0.2)] text-white/90"
               onClick={() => onQuick("Compare to Stripe")}
             >
-              <ArrowRight className="h-4 w-4 text-amber-300/80" />
+              <ArrowRight className="h-4 w-4 shrink-0 text-amber-400/90 transition-colors group-hover:text-amber-300" />
               Compare
             </Button>
           </div>
@@ -322,12 +390,17 @@ export function AIChatPanel({
                     ...spring,
                     opacity: { duration: 0.25 },
                   }}
-                  className="origin-bottom"
+                  className={cn(
+                    "origin-bottom flex",
+                    m.role === "user" ? "justify-end" : "justify-start",
+                  )}
                 >
                   <Card
                     className={cn(
-                      "rounded-2xl border-amber-500/10 bg-amber-950/10 overflow-hidden",
-                      m.role === "user" && "bg-amber-500/5 border-amber-500/15",
+                      "max-w-[85%] rounded-2xl border-amber-500/10 bg-amber-950/10 overflow-hidden",
+                      m.role === "user" &&
+                        "bg-amber-500/10 border-amber-500/20 rounded-br-md",
+                      !(m.role === "user") && "rounded-bl-md",
                       isPlaceholder(m) && "relative border-amber-500/20",
                     )}
                   >
@@ -358,7 +431,7 @@ export function AIChatPanel({
                       </div>
                       <div className="min-h-[1.25rem] whitespace-pre-line text-[13px] leading-relaxed text-white/85">
                         {isPlaceholder(m) ? (
-                          <LoadingDots />
+                          <LoadingState />
                         ) : (
                           <motion.span
                             key={m.content.slice(0, 80)}
@@ -367,7 +440,9 @@ export function AIChatPanel({
                             transition={{ duration: 0.35, ease: "easeOut" }}
                             className="block"
                           >
-                            {m.content}
+                            {m.role === "assistant"
+                              ? renderWithBold(m.content)
+                              : m.content}
                           </motion.span>
                         )}
                       </div>

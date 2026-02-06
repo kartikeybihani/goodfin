@@ -3,6 +3,8 @@
  * Logs all requests with requestId and timing.
  */
 
+import { log as logPretty } from "@/app/lib/log";
+
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
@@ -22,11 +24,7 @@ function getApiKey(): string {
 }
 
 function log(level: "info" | "warn" | "error", requestId: string, message: string, meta?: Record<string, unknown>) {
-  const payload = { requestId, ...meta };
-  const line = `[concierge] ${level} ${JSON.stringify({ ...payload, message })}`;
-  if (level === "error") console.error(line);
-  else if (level === "warn") console.warn(line);
-  else console.log(line);
+  logPretty("openrouter", message, { requestId, ...meta }, level);
 }
 
 export async function chat(

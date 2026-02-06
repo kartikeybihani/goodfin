@@ -3,6 +3,8 @@
  * Provides fresh web data for financial queries that need current information.
  */
 
+import { log as logPretty } from "@/app/lib/log";
+
 export type BraveSearchResult = {
   title: string;
   url: string;
@@ -22,7 +24,7 @@ export async function braveSearch(
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     if (!process.env.BRAVE_API_KEY) {
-      console.warn("[brave] No BRAVE_API_KEY, skipping web search");
+      logPretty("brave", "No API key, skipping web search", {}, "warn");
       return [];
     }
 
@@ -55,7 +57,10 @@ export async function braveSearch(
     );
 
     if (!response.ok) {
-      console.error("[brave] API request failed:", response.status, response.statusText);
+      logPretty("brave", "API request failed", {
+        status: response.status,
+        statusText: response.statusText,
+      }, "error");
       return [];
     }
 
@@ -63,7 +68,7 @@ export async function braveSearch(
       web?: { results?: Array<{ title?: string; url?: string; description?: string; snippet?: string }> };
     };
     const results: BraveSearchResult[] =
-      data.web?.results?.slice(0, 5).map((result, index) => {
+      data.web?.results?.slice(0, 10).map((result, index) => {
         const snippet =
           result.description ?? result.snippet ?? "No description available";
         return {
@@ -77,10 +82,12 @@ export async function braveSearch(
     return results;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      console.warn("[brave] Search aborted (timeout or cancel)");
+      logPretty("brave", "Search aborted (timeout or cancel)", {}, "warn");
       return [];
     }
-    console.error("[brave] Search failed:", error instanceof Error ? error.message : String(error));
+    logPretty("brave", "Search failed", {
+      error: error instanceof Error ? error.message : String(error),
+    }, "error");
     return [];
   } finally {
     if (timeoutId !== undefined) clearTimeout(timeoutId);
