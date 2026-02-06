@@ -15,8 +15,10 @@ function parseTier(raw: string): ConciergeQueryTier {
 /** Layer 1: classify user query as simple | industry | detail */
 async function classify(
   userMessage: string,
-  requestId: string
+  requestId: string,
+  onLog: (meta: Record<string, unknown>) => void
 ): Promise<ConciergeQueryTier> {
+  onLog({ layer: "classification", userMessage });
   const prompt = `You are a classifier for a private market deal concierge. Classify the user's question into exactly one tier:
 
 - simple: quick factual questions, definitions, yes/no, or very short answers (e.g. "What is secondary?", "Summarize this deal").
@@ -27,11 +29,13 @@ Reply with exactly one word: simple, industry, or detail.
 
 User question: ${userMessage}`;
 
-  const out = await chat(
+  const rawOut = await chat(
     [{ role: "user", content: prompt }],
     { requestId, max_tokens: 16, temperature: 0 }
   );
-  return parseTier(out);
+  const tier = parseTier(rawOut);
+  onLog({ layer: "classification", rawResponse: rawOut, tier });
+  return tier;
 }
 
 function formatWebResults(results: BraveSearchResult[]): string {
@@ -50,7 +54,8 @@ async function answer(
   tier: ConciergeQueryTier,
   contextCompany: Company | null,
   webResults: BraveSearchResult[],
-  requestId: string
+  requestId: string,
+  onLog: (meta: Record<string, unknown>) => void
 ): Promise<string> {
   const context = contextCompany
     ? `Current deal context: ${contextCompany.shortName} (${contextCompany.sector}), demand ${contextCompany.demandIndex}/100, supply ${contextCompany.supplyIndex}/100.`
@@ -65,13 +70,20 @@ Answer in 2–4 short sentences. Be tactical.${webBlock ? `\n\n--- Web search re
     ? `${userMessage}\n\n[Use the web results above where they help.]`
     : userMessage;
 
-  return chat(
+  onLog({ layer: "main", userMessage, tier, contextCompany: contextCompany?.shortName ?? null });
+  const content = await chat(
     [
       { role: "system", content: system },
       { role: "user", content: userContent },
     ],
     { requestId, max_tokens: 512, temperature: 0.3 }
   );
+  onLog({
+    layer: "main",
+    responseLength: content.length,
+    response: content.length > 500 ? content.slice(0, 500) + "…" : content,
+  });
+  return content;
 }
 
 export async function POST(req: Request) {
@@ -106,17 +118,28 @@ export async function POST(req: Request) {
     }
 
     const t0 = Date.now();
-    const tier = await classify(message, requestId);
+    const tier = await classify(message, requestId, (meta) =>
+      logMeta("concierge.classification", meta)
+    );
     const classifyMs = Date.now() - t0;
     logMeta("concierge.classify.done", { tier, classifyMs });
 
     const searchQuery = contextCompany
       ? `${contextCompany.shortName} ${message}`.trim()
       : message;
+    logMeta("concierge.web_search.input", { searchQuery });
     const tSearch = Date.now();
     const webResults = await braveSearch(searchQuery, { timeoutMs: 8000 });
     const searchMs = Date.now() - tSearch;
-    logMeta("concierge.search.done", { searchMs, resultCount: webResults.length });
+    logMeta("concierge.web_search.done", {
+      searchMs,
+      resultCount: webResults.length,
+      results: webResults.map((r) => ({
+        title: r.title,
+        url: r.url,
+        snippet: r.snippet.slice(0, 200) + (r.snippet.length > 200 ? "…" : ""),
+      })),
+    });
 
     const t1 = Date.now();
     const content = await answer(
@@ -124,7 +147,8 @@ export async function POST(req: Request) {
       tier,
       contextCompany,
       webResults,
-      requestId
+      requestId,
+      (meta) => logMeta("concierge.main", meta)
     );
     const answerMs = Date.now() - t1;
     logMeta("concierge.answer.done", { answerMs, totalMs: Date.now() - t0 });

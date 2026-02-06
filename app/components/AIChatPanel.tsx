@@ -193,6 +193,28 @@ export function AIChatPanel({
 
   const spring = { type: "spring" as const, stiffness: 420, damping: 36 };
 
+  /** Loading dots for assistant "thinking" state */
+  const LoadingDots = () => (
+    <div className="flex items-center gap-1 py-0.5" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="h-1.5 w-1.5 rounded-full bg-amber-400/90"
+          animate={{ y: [0, -5, 0], opacity: [0.6, 1, 0.6] }}
+          transition={{
+            duration: 0.6,
+            repeat: Infinity,
+            delay: i * 0.12,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+
+  const isPlaceholder = (m: ConciergeMessage) =>
+    m.role === "assistant" && (m.content === "…" || m.content.trim() === "");
+
   const asideContent = (
     <motion.aside
       key="concierge-panel"
@@ -290,33 +312,70 @@ export function AIChatPanel({
 
         <div className="mt-4 flex-1 overflow-auto px-4 pb-4">
           <div className="space-y-3">
-            {messages.map((m) => (
-              <Card
-                key={m.id}
-                className={cn(
-                  "rounded-2xl border-amber-500/10 bg-amber-950/10",
-                  m.role === "user" && "bg-amber-500/5 border-amber-500/15",
-                )}
-              >
-                <div className="px-3 py-2.5">
-                  <div className="mb-1 flex items-center justify-between">
-                    <div
-                      className={cn(
-                        "text-[11px] font-medium",
-                        m.role === "assistant"
-                          ? "text-white/70"
-                          : "text-white/80",
-                      )}
-                    >
-                      {m.role === "assistant" ? "Concierge" : "You"}
+            <AnimatePresence initial={false}>
+              {messages.map((m) => (
+                <motion.div
+                  key={m.id}
+                  initial={{ opacity: 0, y: 14, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{
+                    ...spring,
+                    opacity: { duration: 0.25 },
+                  }}
+                  className="origin-bottom"
+                >
+                  <Card
+                    className={cn(
+                      "rounded-2xl border-amber-500/10 bg-amber-950/10 overflow-hidden",
+                      m.role === "user" && "bg-amber-500/5 border-amber-500/15",
+                      isPlaceholder(m) && "relative border-amber-500/20",
+                    )}
+                  >
+                    {isPlaceholder(m) && (
+                      <motion.div
+                        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-amber-500/10 to-transparent"
+                        animate={{ x: "200%" }}
+                        transition={{
+                          duration: 1.8,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                        }}
+                        aria-hidden
+                      />
+                    )}
+                    <div className="relative z-10 px-3 py-2.5">
+                      <div className="mb-1 flex items-center justify-between">
+                        <div
+                          className={cn(
+                            "text-[11px] font-medium",
+                            m.role === "assistant"
+                              ? "text-white/70"
+                              : "text-white/80",
+                          )}
+                        >
+                          {m.role === "assistant" ? "Concierge" : "You"}
+                        </div>
+                      </div>
+                      <div className="min-h-[1.25rem] whitespace-pre-line text-[13px] leading-relaxed text-white/85">
+                        {isPlaceholder(m) ? (
+                          <LoadingDots />
+                        ) : (
+                          <motion.span
+                            key={m.content.slice(0, 80)}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.35, ease: "easeOut" }}
+                            className="block"
+                          >
+                            {m.content}
+                          </motion.span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="whitespace-pre-line text-[13px] leading-relaxed text-white/85">
-                    {m.content}
-                  </div>
-                </div>
-              </Card>
-            ))}
+                  </Card>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
 
