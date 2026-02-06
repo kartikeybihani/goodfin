@@ -2,47 +2,15 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ArrowRight,
-  ChevronRight,
-  CircleDollarSign,
-  ShieldAlert,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { Maximize2, X } from "lucide-react";
 
-import type { Company, ConciergeMessage } from "@/app/lib/types";
+import type { Company } from "@/app/lib/types";
+import { useConciergeChat } from "@/app/lib/useConciergeChat";
 import { cn } from "@/app/lib/utils";
 import { Button } from "@/app/components/ui/button";
-import { Card } from "@/app/components/ui/card";
-
-function uid() {
-  return Math.random().toString(16).slice(2);
-}
-
-async function fetchConciergeReply(
-  message: string,
-  contextCompany: Company | undefined,
-): Promise<{ content: string }> {
-  const requestId = `ui_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const res = await fetch("/api/concierge", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-concierge-request-id": requestId,
-    },
-    body: JSON.stringify({
-      message,
-      contextCompany: contextCompany ?? null,
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err?.error ?? "Concierge request failed");
-  }
-  return res.json();
-}
+import { ChatUI } from "@/app/components/ChatUI";
 
 const CONCIERGE_DEFAULT_PCT = 0.33;
 const CONCIERGE_MIN = 380;
@@ -136,62 +104,7 @@ export function AIChatPanel({
     [clampedWidth],
   );
 
-  const [messages, setMessages] = React.useState<ConciergeMessage[]>(() => [
-    {
-      id: uid(),
-      role: "assistant",
-      content:
-        "I’m your deal concierge. Ask anything: summary, key risks, allocation posture, or a quick comparison.",
-      ts: Date.now(),
-    },
-  ]);
-  const [draft, setDraft] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-
-  const push = React.useCallback((m: Omit<ConciergeMessage, "id" | "ts">) => {
-    setMessages((prev) => [...prev, { ...m, id: uid(), ts: Date.now() }]);
-  }, []);
-
-  const setLastAssistantContent = React.useCallback((content: string) => {
-    setMessages((prev) => {
-      const next = [...prev];
-      const last = next[next.length - 1];
-      if (last?.role === "assistant")
-        next[next.length - 1] = { ...last, content };
-      return next;
-    });
-  }, []);
-
-  const sendToConcierge = React.useCallback(
-    async (text: string) => {
-      push({ role: "user", content: text });
-      push({ role: "assistant", content: "…" });
-      setLoading(true);
-      try {
-        const { content } = await fetchConciergeReply(text, contextCompany);
-        setLastAssistantContent(content);
-      } catch (e) {
-        setLastAssistantContent(
-          `Sorry, something went wrong: ${e instanceof Error ? e.message : String(e)}`,
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [contextCompany, push, setLastAssistantContent],
-  );
-
-  function onQuick(text: string) {
-    if (loading) return;
-    sendToConcierge(text);
-  }
-
-  function onSend() {
-    const text = draft.trim();
-    if (!text || loading) return;
-    setDraft("");
-    sendToConcierge(text);
-  }
+  const chat = useConciergeChat(contextCompany);
 
   React.useEffect(() => {
     if (!open) return;
@@ -204,90 +117,15 @@ export function AIChatPanel({
 
   const spring = { type: "spring" as const, stiffness: 420, damping: 36 };
 
-  const LOADING_MESSAGES = [
-    "Looking over deal flows…",
-    "Checking secondary tape…",
-    "Scanning allocation signals…",
-    "Reviewing key terms…",
-    "Cross-referencing comparable deals…",
-    "Pulling recent pricing data…",
-    "Assessing risk factors…",
-    "Checking investor activity…",
-    "Reviewing cap table context…",
-    "Scanning market insights…",
-    "Gathering deal summary…",
-    "Checking valuation trends…",
-    "Reviewing liquidity signals…",
-    "Pulling news and updates…",
-    "Synthesizing recommendations…",
-  ];
-
-  const [loadingMessageIndex, setLoadingMessageIndex] = React.useState(0);
-  React.useEffect(() => {
-    if (!loading) {
-      setLoadingMessageIndex(0);
-      return;
-    }
-    const interval = setInterval(() => {
-      setLoadingMessageIndex((i) => (i + 1) % LOADING_MESSAGES.length);
-    }, 2200);
-    return () => clearInterval(interval);
-  }, [loading]);
-
-  /** Loading dots + rotating status for assistant "thinking" state */
-  const LoadingState = () => (
-    <div className="space-y-2 py-0.5" aria-hidden>
-      <div className="flex items-center gap-1">
-        {[0, 1, 2].map((i) => (
-          <motion.span
-            key={i}
-            className="h-1.5 w-1.5 rounded-full bg-amber-400/90"
-            animate={{ y: [0, -5, 0], opacity: [0.6, 1, 0.6] }}
-            transition={{
-              duration: 0.6,
-              repeat: Infinity,
-              delay: i * 0.12,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
-      </div>
-      <motion.p
-        key={loadingMessageIndex}
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 0.7, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="text-[11px] text-white/50"
-      >
-        {LOADING_MESSAGES[loadingMessageIndex]}
-      </motion.p>
-    </div>
-  );
-
-  const isPlaceholder = (m: ConciergeMessage) =>
-    m.role === "assistant" && (m.content === "…" || m.content.trim() === "");
-
-  /** Renders text with **word** → bold */
-  const renderWithBold = (text: string) => {
-    const parts: (string | React.ReactNode)[] = [];
-    const re = /\*\*(.+?)\*\*/g;
-    let lastIdx = 0;
-    let match;
-    let key = 0;
-    while ((match = re.exec(text)) !== null) {
-      parts.push(text.slice(lastIdx, match.index));
-      parts.push(<strong key={key++}>{match[1]}</strong>);
-      lastIdx = match.index + match[0].length;
-    }
-    parts.push(text.slice(lastIdx));
-    return parts;
-  };
+  const expandHref = contextCompany
+    ? `/chat?dealId=${contextCompany.id}`
+    : "/chat";
 
   const asideContent = (
     <motion.aside
       key="concierge-panel"
       className={cn(
-        "relative h-dvh shrink-0 max-w-[40vw] overflow-hidden border-l border-amber-500/20 bg-gradient-to-b from-[#0f0d0a] via-[#120f0b] to-[#0B0E12] backdrop-blur-2xl shadow-[-8px_0_32px_-8px_rgba(251,146,60,0.12)]",
+        "relative h-dvh shrink-0 max-w-[40vw] overflow-hidden border-l border-white/10 bg-gradient-to-b from-[#0f0d0a] via-[#120f0b] to-[#0B0E12] backdrop-blur-2xl shadow-[-8px_0_32px_-8px_rgba(0,0,0,0.3)]",
         inline ? "min-w-0" : "fixed right-0 top-0 z-50",
       )}
       style={!inline ? { width: clampedWidth } : undefined}
@@ -304,14 +142,14 @@ export function AIChatPanel({
         role="separator"
         aria-label="Resize panel"
         onPointerDown={handleResizeStart}
-        className="absolute left-0 top-0 z-10 h-full w-2 cursor-col-resize touch-none hover:bg-amber-500/20 active:bg-amber-500/25"
+        className="absolute left-0 top-0 z-10 h-full w-2 cursor-col-resize touch-none hover:bg-white/10 active:bg-white/15"
         style={{ marginLeft: -4, paddingLeft: 4 }}
       />
       <div className="flex h-full flex-col">
-        <div className="flex items-start justify-between gap-3 border-b border-amber-500/15 px-4 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/15 to-amber-600/5">
+              <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/15 bg-white/[0.04]">
                 <Image
                   src="/goodfinGoIcon.png"
                   alt="Goodfin Go"
@@ -327,156 +165,35 @@ export function AIChatPanel({
               </div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            className="text-white/70 hover:text-white hover:bg-amber-500/10"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="px-4 pt-4">
-          <div className="grid grid-cols-2 gap-2.5">
-            <Button
-              size="sm"
-              variant="secondary"
-              className="group h-10 gap-2 rounded-xl border-amber-500/15 bg-white/[0.02] font-medium transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-500/10 hover:shadow-[0_0_20px_-4px_rgba(251,146,60,0.2)] text-white/90"
-              onClick={() => onQuick("Summarize this deal")}
+          <div className="flex items-center gap-1">
+            <Link
+              href={expandHref}
+              title="Expand to full page"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-[13px] font-medium text-white/60 transition hover:bg-white/10 hover:text-white"
             >
-              <Sparkles className="h-4 w-4 shrink-0 text-amber-400/90 transition-colors group-hover:text-amber-300" />
-              Summarize
-            </Button>
+              <Maximize2 className="h-4 w-4 shrink-0" />
+              <span>Expand</span>
+            </Link>
             <Button
+              variant="ghost"
               size="sm"
-              variant="secondary"
-              className="group h-10 gap-2 rounded-xl border-amber-500/15 bg-white/[0.02] font-medium transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-500/10 hover:shadow-[0_0_20px_-4px_rgba(251,146,60,0.2)] text-white/90"
-              onClick={() => onQuick("Key risks?")}
+              onClick={() => onOpenChange(false)}
+              className="text-white/60 hover:text-white hover:bg-white/10"
             >
-              <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400/90 transition-colors group-hover:text-amber-300" />
-              Key risks
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="group h-10 gap-2 rounded-xl border-amber-500/15 bg-white/[0.02] font-medium transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-500/10 hover:shadow-[0_0_20px_-4px_rgba(251,146,60,0.2)] text-white/90"
-              onClick={() => onQuick("Should I allocate $50k?")}
-            >
-              <CircleDollarSign className="h-4 w-4 shrink-0 text-amber-400/90 transition-colors group-hover:text-amber-300" />
-              Allocate $50k
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="group h-10 gap-2 rounded-xl border-amber-500/15 bg-white/[0.02] font-medium transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-500/10 hover:shadow-[0_0_20px_-4px_rgba(251,146,60,0.2)] text-white/90"
-              onClick={() => onQuick("Compare to Stripe")}
-            >
-              <ArrowRight className="h-4 w-4 shrink-0 text-amber-400/90 transition-colors group-hover:text-amber-300" />
-              Compare
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        <div className="mt-4 flex-1 overflow-auto px-4 pb-4">
-          <div className="space-y-3">
-            <AnimatePresence initial={false}>
-              {messages.map((m) => (
-                <motion.div
-                  key={m.id}
-                  initial={{ opacity: 0, y: 14, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{
-                    ...spring,
-                    opacity: { duration: 0.25 },
-                  }}
-                  className={cn(
-                    "origin-bottom flex",
-                    m.role === "user" ? "justify-end" : "justify-start",
-                  )}
-                >
-                  <Card
-                    className={cn(
-                      "max-w-[85%] rounded-2xl border-amber-500/10 bg-amber-950/10 overflow-hidden",
-                      m.role === "user" &&
-                        "bg-amber-500/10 border-amber-500/20 rounded-br-md",
-                      !(m.role === "user") && "rounded-bl-md",
-                      isPlaceholder(m) && "relative border-amber-500/20",
-                    )}
-                  >
-                    {isPlaceholder(m) && (
-                      <motion.div
-                        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-amber-500/10 to-transparent"
-                        animate={{ x: "200%" }}
-                        transition={{
-                          duration: 1.8,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                        }}
-                        aria-hidden
-                      />
-                    )}
-                    <div className="relative z-10 px-3 py-2.5">
-                      <div className="mb-1 flex items-center justify-between">
-                        <div
-                          className={cn(
-                            "text-[11px] font-medium",
-                            m.role === "assistant"
-                              ? "text-white/70"
-                              : "text-white/80",
-                          )}
-                        >
-                          {m.role === "assistant" ? "Concierge" : "You"}
-                        </div>
-                      </div>
-                      <div className="min-h-[1.25rem] whitespace-pre-line text-[13px] leading-relaxed text-white/85">
-                        {isPlaceholder(m) ? (
-                          <LoadingState />
-                        ) : (
-                          <motion.span
-                            key={m.content.slice(0, 80)}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.35, ease: "easeOut" }}
-                            className="block"
-                          >
-                            {m.role === "assistant"
-                              ? renderWithBold(m.content)
-                              : m.content}
-                          </motion.span>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        <div className="border-t border-amber-500/15 p-4">
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-2">
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") onSend();
-              }}
-              placeholder="Ask: key risks, pricing dispersion, terms…"
-              disabled={loading}
-              className="h-9 flex-1 bg-transparent px-2 text-[13px] text-white/85 placeholder:text-white/35 focus:outline-none disabled:opacity-60"
-            />
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={onSend}
-              disabled={loading}
-              className="bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-400 hover:to-amber-500 shadow-[0_4px_14px_-2px_rgba(251,146,60,0.4)] disabled:opacity-60"
-            >
-              {loading ? "…" : "Send"}
-            </Button>
-          </div>
-        </div>
+        <ChatUI
+          messages={chat.messages}
+          draft={chat.draft}
+          setDraft={chat.setDraft}
+          loading={chat.loading}
+          onSend={chat.onSend}
+          onQuick={chat.onQuick}
+          muted
+        />
       </div>
     </motion.aside>
   );

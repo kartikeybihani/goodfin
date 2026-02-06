@@ -35,8 +35,6 @@ export async function chat(
   const model = options.model ?? DEFAULT_MODEL;
   const start = Date.now();
 
-  log("info", requestId, "openrouter.chat.start", { model, messageCount: messages.length });
-
   try {
     const res = await fetch(OPENROUTER_URL, {
       method: "POST",
@@ -67,20 +65,24 @@ export async function chat(
 
     const data = (await res.json()) as {
       choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
+      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
     };
 
     const content = data.choices?.[0]?.message?.content ?? "";
-    log("info", requestId, "openrouter.chat.done", {
-      elapsedMs: elapsed,
-      usage: data.usage,
-      finishReason: data.choices?.[0]?.finish_reason,
-    });
+    const totalTokens = data.usage?.total_tokens ?? 0;
+    
+    // Only log if requestId is provided (to avoid noise from internal calls)
+    if (options.requestId) {
+      log("info", requestId, "openrouter", {
+        tokens: totalTokens,
+        elapsedMs: elapsed,
+      });
+    }
 
     return content.trim();
   } catch (e) {
     const elapsed = Date.now() - start;
-    log("error", requestId, "openrouter.chat.failed", {
+    log("error", requestId, "openrouter.failed", {
       elapsedMs: elapsed,
       error: e instanceof Error ? e.message : String(e),
     });

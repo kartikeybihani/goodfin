@@ -51,7 +51,7 @@ export function DealDetailView({ company }: { company: Company }) {
             </Link>
 
             <div className="mt-3 flex items-start gap-3">
-              <div className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/[0.12] bg-gradient-to-br from-white/[0.12] via-amber-500/10 to-transparent">
+              <div className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/[0.12] bg-gradient-to-br from-white/[0.12] via-white/[0.06] to-transparent">
                 <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),transparent_50%)]" />
                 <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_70%_80%,rgba(251,146,60,0.08),transparent_55%)]" />
                 <span className="relative text-[13px] font-semibold tracking-tight text-white/90">
@@ -82,9 +82,9 @@ export function DealDetailView({ company }: { company: Company }) {
             <Button
               variant="secondary"
               onClick={() => setConciergeOpen(true)}
-              className="border-amber-500/20 bg-amber-500/5 text-white hover:bg-amber-500/10 hover:border-amber-500/30"
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20"
             >
-              <Sparkles className="h-4 w-4 text-amber-300/90" />
+              <Sparkles className="h-4 w-4 text-white/70" />
               Concierge
             </Button>
             <Button variant="outline" disabled>

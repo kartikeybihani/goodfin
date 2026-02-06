@@ -97,9 +97,11 @@ User question:
 `;
 
 // --- Tier-specific answer prompts ---
-const SIMPLE_FAST_PROMPT = `You are a fast private markets assistant.
+const SIMPLE_FAST_PROMPT = `You are a fast private markets assistant specializing in secondary markets, venture capital, and private equity deals.
 
-Answer the question directly in 1-2 sentences.
+IMPORTANT: This platform is ONLY for private markets investing (secondary transactions, VC/PE deals, private company shares). NEVER mention stocks, bonds, ETFs, public markets, or traditional asset allocation.
+
+Answer the question directly in 1-2 sentences about private markets only.
 
 Rules:
 - max 2 sentences
@@ -108,13 +110,16 @@ Rules:
 - no numbers unless asked
 - no decision-making
 - just the answer
+- focus on private markets context only
 
 Be concise and factual.
 `;
 
-const SIMPLE_PROMPT = `You are a fast private markets assistant.
+const SIMPLE_PROMPT = `You are a fast private markets assistant specializing in secondary markets, venture capital, and private equity deals.
 
-Answer the question directly and briefly.
+IMPORTANT: This platform is ONLY for private markets investing (secondary transactions, VC/PE deals, private company shares). NEVER mention stocks, bonds, ETFs, public markets, or traditional asset allocation.
+
+Answer the question directly and briefly about private markets only.
 
 Rules:
 - max 2 sentences
@@ -122,42 +127,66 @@ Rules:
 - no hedging
 - no essays
 - just the answer
+- focus on private markets context only
 
 Be concise and factual.
 `;
 
-const INDUSTRY_PROMPT = `You are a private markets analyst.
+const INDUSTRY_PROMPT = `You are a private markets analyst specializing in secondary markets, venture capital, and private equity.
 
-Provide a short market-level answer.
+IMPORTANT: This platform is ONLY for private markets investing (secondary transactions, VC/PE deals, private company shares). NEVER mention stocks, bonds, ETFs, public markets, or traditional asset allocation.
+
+Provide a short market-level answer about private markets trends, sectors, and deal dynamics.
 
 Rules:
 - 3–5 bullet points
-- include trends or signals
-- highlight what matters
+- include trends or signals in private markets
+- highlight what matters for private market investors
 - avoid long paragraphs
 - do NOT give personal investment advice
+- focus on private markets context only
 
 Focus on synthesis and insights, not explanation.
 `;
 
-const DETAIL_PROMPT = `You are a private markets investment strategist.
+const DETAIL_PROMPT = `You are a private markets investment strategist specializing in secondary markets, venture capital, and private equity deals.
 
-Provide a structured, decision-ready answer.
+CRITICAL: This platform is EXCLUSIVELY for private markets investing. You MUST focus on:
+- Secondary market transactions (buying/selling private company shares)
+- Venture capital and private equity deals
+- Private company valuations and deal terms
+- Allocation to specific private companies/deals
+- Private market dynamics, demand/supply, pricing
+
+NEVER mention:
+- Stocks, bonds, ETFs, mutual funds, or public markets
+- Traditional asset allocation (stocks/bonds/cash splits)
+- Public market investment strategies
+- Robo-advisors or public market financial advisors
+
+When discussing allocation, focus on:
+- Which private deals/companies to consider
+- Deal-specific factors (valuation, terms, demand/supply signals)
+- Portfolio construction across private market opportunities
+- Secondary market dynamics and timing
+
+Provide a structured, decision-ready answer about private markets only.
 
 Rules:
 - use clear sections
-- include reasoning
-- include risks
-- include tradeoffs
+- include reasoning specific to private markets
+- include risks specific to private market investments
+- include tradeoffs between different private deals
 - keep concise but thoughtful
 - avoid fluff
+- NEVER suggest public market investments
 
 Format:
 
 Summary
-Key Factors
-Risks
-Suggested Approach
+Key Factors (deal-specific, private market context)
+Risks (private market risks: illiquidity, valuation uncertainty, deal terms)
+Suggested Approach (which private deals/companies to consider, allocation across private opportunities)
 `;
 
 const systemByTier: Record<ConciergeQueryTier, string> = {
@@ -181,13 +210,14 @@ async function classify(
   requestId: string,
   onLog: (meta: Record<string, unknown>) => void
 ): Promise<ConciergeQueryTier> {
-  onLog({ layer: "classification", userMessage });
+  const start = Date.now();
   const rawOut = await chat(
     [{ role: "user", content: CLASSIFY_PROMPT + userMessage }],
-    { requestId, max_tokens: 16, temperature: 0 }
+    { requestId, max_tokens: 200, temperature: 0 }
   );
   const tier = parseTier(rawOut);
-  onLog({ layer: "classification", rawResponse: rawOut, tier });
+  const elapsed = Date.now() - start;
+  onLog({ tier, elapsedMs: elapsed });
   return tier;
 }
 
@@ -211,12 +241,12 @@ async function answer(
   onLog: (meta: Record<string, unknown>) => void
 ): Promise<string> {
   const contextBlock = contextCompany
-    ? `Current deal context: ${contextCompany.shortName} (${contextCompany.sector}), demand ${contextCompany.demandIndex}/100, supply ${contextCompany.supplyIndex}/100.`
-    : "No specific deal selected; answer in general terms.";
+    ? `Current private market deal context: ${contextCompany.shortName} (${contextCompany.sector}), demand ${contextCompany.demandIndex}/100, supply ${contextCompany.supplyIndex}/100. This is a private markets secondary transaction opportunity.`
+    : "No specific private market deal selected; answer in general private markets terms only.";
 
   const webBlock = formatWebResults(webResults);
   const webSection = webBlock
-    ? `\n\nUse the following web search results to ground your answer when relevant. If they don't apply, answer from general knowledge.\n\n--- Web search results ---\n${webBlock}\n---`
+    ? `\n\nUse the following web search results ONLY if they relate to private markets (secondary markets, venture capital, private equity, private company deals). IGNORE any results about public markets (stocks, bonds, ETFs). If results don't apply to private markets, ignore them and answer from private markets knowledge only.\n\n--- Web search results ---\n${webBlock}\n---`
     : "";
 
   const system = systemByTier[tier] + "\n\n" + contextBlock + webSection;
@@ -228,13 +258,13 @@ async function answer(
   // Hard cap tokens by tier
   const maxTokensByTier: Record<ConciergeQueryTier, number> = {
     simple_fast: 80,
-    simple: 180,
-    industry: 180,
-    detail: 400,
+    simple: 400,
+    industry: 400,
+    detail: 600,
   };
   const maxTokens = maxTokensByTier[tier];
 
-  onLog({ layer: "main", userMessage, tier, contextCompany: contextCompany?.shortName ?? null, maxTokens });
+  const start = Date.now();
   const content = await chat(
     [
       { role: "system", content: system },
@@ -242,11 +272,8 @@ async function answer(
     ],
     { requestId, max_tokens: maxTokens, temperature: 0.3 }
   );
-  onLog({
-    layer: "main",
-    responseLength: content.length,
-    response: content.length > 500 ? content.slice(0, 500) + "…" : content,
-  });
+  const elapsed = Date.now() - start;
+  onLog({ elapsedMs: elapsed });
   return content;
 }
 
@@ -280,49 +307,37 @@ export async function POST(req: Request) {
 
   const t0 = Date.now();
   const tier = await classify(message, requestId, (meta) =>
-    logMeta("concierge.classification", meta)
+    logMeta("classification", meta)
   );
-  const classifyMs = Date.now() - t0;
-  logMeta("concierge.classify.done", { tier, classifyMs });
 
-  // Only search for industry + detail tiers
+  // Only search for industry + detail tiers (skip for simple_fast and simple)
   let webResults: BraveSearchResult[] = [];
-  if (tier !== "simple_fast") {
+  if (tier === "industry" || tier === "detail") {
     const searchQuery = contextCompany
       ? `${contextCompany.shortName} ${message}`.trim()
       : message;
-    logMeta("concierge.web_search.input", { searchQuery, tier });
     const tSearch = Date.now();
     const rawResults = await braveSearch(searchQuery, { timeoutMs: 8000 });
-    // Limit web results: 2 for industry, 4 for detail
-    const maxResults = tier === "industry" ? 2 : tier === "detail" ? 4 : 10;
+    // Limit web results: 3 for industry, 10 for detail
+    const maxResults = tier === "industry" ? 3 : 10;
     webResults = rawResults.slice(0, maxResults);
     const searchMs = Date.now() - tSearch;
-    logMeta("concierge.web_search.done", {
-      searchMs,
+    logMeta("web_search", {
       resultCount: webResults.length,
-      maxResults,
-      results: webResults.map((r) => ({
-        title: r.title,
-        url: r.url,
-        snippet: r.snippet.slice(0, 200) + (r.snippet.length > 200 ? "…" : ""),
-      })),
+      elapsedMs: searchMs,
     });
-  } else {
-    logMeta("concierge.web_search.skipped", { tier, reason: "simple_fast tier" });
   }
 
-    const t1 = Date.now();
     const content = await answer(
       message,
       tier,
       contextCompany,
       webResults,
       requestId,
-      (meta) => logMeta("concierge.main", meta)
+      (meta) => logMeta("answer", meta)
     );
-    const answerMs = Date.now() - t1;
-    logMeta("concierge.answer.done", { answerMs, totalMs: Date.now() - t0 });
+    const totalMs = Date.now() - t0;
+    logMeta("total", { elapsedMs: totalMs });
 
     return NextResponse.json({
       content,

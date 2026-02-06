@@ -90,14 +90,14 @@ export function DashboardCards({
               <h1 className="truncate text-[15px] font-semibold tracking-tight text-white/90 md:text-base">
                 Goodfin Private Markets Intelligence
               </h1>
-              <p className="mt-0.5 flex items-center gap-2 text-[11px] text-white/50">
+              {/* <p className="mt-0.5 flex items-center gap-2 text-[11px] text-white/50">
                 <span className="font-mono">LIVE</span>
                 <span className="text-white/20">·</span>
                 <span>secondary tape</span>
                 <Badge tone="neutral" className="ml-1 py-0 text-[10px]">
                   demo
                 </Badge>
-              </p>
+              </p> */}
             </div>
           </div>
 
@@ -122,9 +122,9 @@ export function DashboardCards({
             <Button
               variant="secondary"
               onClick={() => setConciergeOpen(true)}
-              className="h-9 border-amber-500/20 bg-amber-500/5 text-white shadow-[0_8px_24px_-12px_rgba(251,146,60,0.3)] hover:bg-amber-500/10 hover:border-amber-500/30"
+              className="h-9 border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20"
             >
-              <Sparkles className="h-3.5 w-3.5 text-amber-300/90" />
+              <Sparkles className="h-3.5 w-3.5 text-white/70" />
               AI Concierge
             </Button>
           </div>
@@ -179,86 +179,82 @@ export function DashboardCards({
               </Card>
 
               <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-white/65" />
-                      Investor Activity
-                    </CardTitle>
-                    <Badge tone="neutral">weekly</Badge>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="rounded-xl border border-white/10 bg-black/[0.18] p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-[11px] text-white/55">
-                          Investors viewed OpenAI
-                        </div>
-                        <div className="text-[12px] font-mono text-white/80">
-                          {investorActivity.viewsThisWeek.toLocaleString(
-                            "en-US",
-                          )}
-                        </div>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-white/65" />
+                    Investor Activity
+                  </CardTitle>
+                  <Badge tone="neutral">weekly</Badge>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="rounded-xl border border-white/10 bg-black/[0.18] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[11px] text-white/55">
+                        Investors viewed OpenAI
                       </div>
-                      <div className="mt-2 text-[12px] text-white/70">
-                        {investorActivity.viewsThisWeek.toLocaleString(
-                          "en-US",
-                        )}{" "}
-                        investors viewed OpenAI this week
+                      <div className="text-[12px] font-mono text-white/80">
+                        {investorActivity.viewsThisWeek.toLocaleString("en-US")}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-black/[0.18] p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="text-[11px] text-white/55">
-                          Top sectors
-                        </div>
-                        <Badge tone="neutral">rotations</Badge>
+                    <div className="mt-2 text-[12px] text-white/70">
+                      {investorActivity.viewsThisWeek.toLocaleString("en-US")}{" "}
+                      investors viewed OpenAI this week
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-black/[0.18] p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[11px] text-white/55">
+                        Top sectors
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {investorActivity.topSectors.map((s) => (
-                          <Badge key={s} tone="neutral" className="py-0.5">
-                            {s}
-                          </Badge>
-                        ))}
+                      <Badge tone="neutral">rotations</Badge>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {investorActivity.topSectors.map((s) => (
+                        <Badge key={s} tone="neutral" className="py-0.5">
+                          {s}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-black/[0.18] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[11px] text-white/55">
+                        Avg deal size
+                      </div>
+                      <div className="text-[12px] font-mono text-emerald-200">
+                        {formatPct(investorActivity.avgDealSizeTrendPct, 0)}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-black/[0.18] p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-[11px] text-white/55">
-                          Avg deal size
-                        </div>
-                        <div className="text-[12px] font-mono text-emerald-200">
-                          {formatPct(investorActivity.avgDealSizeTrendPct, 0)}
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        <Progress value={72} tone="good" />
-                      </div>
+                    <div className="mt-2">
+                      <Progress value={72} tone="good" />
                     </div>
-                    <Separator />
-                    <div className="rounded-xl border border-white/10 bg-black/[0.18] p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-[11px] text-white/55">
-                          Most-viewed
-                        </div>
-                        <Badge tone="neutral">this week</Badge>
+                  </div>
+                  <Separator />
+                  <div className="rounded-xl border border-white/10 bg-black/[0.18] p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[11px] text-white/55">
+                        Most-viewed
                       </div>
-                      <div className="mt-2 space-y-2">
-                        {investorActivity.topCompaniesByViews.map((x) => (
-                          <div
-                            key={x.id}
-                            className="flex items-center justify-between gap-3"
-                          >
-                            <div className="truncate text-[12px] text-white/80">
-                              {x.name}
-                            </div>
-                            <div className="text-[12px] font-mono text-white/65">
-                              {formatCompactNumber(x.views)}
-                            </div>
+                      <Badge tone="neutral">this week</Badge>
+                    </div>
+                    <div className="mt-2 space-y-2">
+                      {investorActivity.topCompaniesByViews.map((x) => (
+                        <div
+                          key={x.id}
+                          className="flex items-center justify-between gap-3"
+                        >
+                          <div className="truncate text-[12px] text-white/80">
+                            {x.name}
                           </div>
-                        ))}
-                      </div>
+                          <div className="text-[12px] font-mono text-white/65">
+                            {formatCompactNumber(x.views)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <InsightsPanel insights={insights} />
@@ -349,9 +345,7 @@ export function DashboardCards({
                         </div>
                       </div>
                       <div className="mt-2 text-[12px] text-white/70">
-                        {investorActivity.viewsThisWeek.toLocaleString(
-                          "en-US",
-                        )}{" "}
+                        {investorActivity.viewsThisWeek.toLocaleString("en-US")}{" "}
                         investors viewed OpenAI this week
                       </div>
                     </div>

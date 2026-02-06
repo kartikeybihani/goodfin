@@ -114,9 +114,9 @@ export function AccreditedPreview({
             variant="secondary"
             size="sm"
             onClick={onOpenConcierge}
-            className="shrink-0 border-amber-500/20 bg-amber-500/5 text-white hover:bg-amber-500/10 hover:border-amber-500/30"
+            className="shrink-0 border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20"
           >
-            <Sparkles className="h-4 w-4 text-amber-300/90" />
+            <Sparkles className="h-4 w-4 text-white/70" />
             Ask Concierge
           </Button>
         </div>
