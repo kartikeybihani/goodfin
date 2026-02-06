@@ -23,7 +23,7 @@ function ChatPageContent() {
   const chat = useConciergeChat(contextCompany);
 
   return (
-    <main className="flex min-h-dvh flex-col">
+    <main className="flex h-dvh flex-col overflow-hidden">
       <header className="shrink-0 border-b border-white/10 bg-[#0B0E12]/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
           <Link
@@ -51,7 +51,7 @@ function ChatPageContent() {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col min-h-0">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col min-h-0 overflow-hidden">
         <ChatUI
           messages={chat.messages}
           draft={chat.draft}

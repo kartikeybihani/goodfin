@@ -65,6 +65,8 @@ export function ChatUI({
   muted = false,
 }: ChatUIProps) {
   const [loadingMessageIndex, setLoadingMessageIndex] = React.useState(0);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const messagesContainerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (!loading) {
@@ -75,6 +77,47 @@ export function ChatUI({
       setLoadingMessageIndex((i) => (i + 1) % LOADING_MESSAGES.length);
     }, 2200);
     return () => clearInterval(interval);
+  }, [loading]);
+
+  React.useEffect(() => {
+    // Auto-scroll to bottom when new messages arrive, but only if user hasn't scrolled up
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      const isNearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight <
+        100;
+      if (isNearBottom) {
+        // Use double requestAnimationFrame to ensure DOM is fully updated
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (messagesContainerRef.current) {
+              messagesContainerRef.current.scrollTop =
+                messagesContainerRef.current.scrollHeight;
+            }
+          });
+        });
+      }
+    }
+  }, [messages.length, loading]);
+
+  // Also scroll when loading state changes (new message starts streaming)
+  React.useEffect(() => {
+    if (loading && messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      const isNearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight <
+        100;
+      if (isNearBottom) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (messagesContainerRef.current) {
+              messagesContainerRef.current.scrollTop =
+                messagesContainerRef.current.scrollHeight;
+            }
+          });
+        });
+      }
+    }
   }, [loading]);
 
   const isPlaceholder = (m: ConciergeMessage) =>
@@ -140,7 +183,7 @@ export function ChatUI({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="shrink-0 px-4 pt-4">
         <div className="grid grid-cols-2 gap-2.5">
           {quickBtn(
@@ -166,7 +209,11 @@ export function ChatUI({
         </div>
       </div>
 
-      <div className="mt-4 min-h-0 flex-1 overflow-auto px-4 pb-4">
+      <div
+        ref={messagesContainerRef}
+        className="mt-4 min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        style={{ overscrollBehavior: "contain" }}
+      >
         <div className="space-y-3">
           <AnimatePresence initial={false}>
             {messages.map((m) => (
@@ -244,14 +291,16 @@ export function ChatUI({
               </motion.div>
             ))}
           </AnimatePresence>
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
       <div
         className={cn(
-          "shrink-0 border-t p-4",
+          "shrink-0 border-t p-4 bg-[#0B0E12]",
           muted ? "border-white/10" : "border-amber-500/15",
         )}
+        style={{ position: "relative", zIndex: 10 }}
       >
         <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-2">
           <input
