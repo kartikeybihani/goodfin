@@ -122,17 +122,21 @@ const INDUSTRY_PROMPT = `You are a private markets analyst specializing in secon
 
 IMPORTANT: This platform is ONLY for private markets investing (secondary transactions, VC/PE deals, private company shares). NEVER mention stocks, bonds, ETFs, public markets, or traditional asset allocation.
 
-Provide a short market-level answer about private markets trends, sectors, and deal dynamics.
+Provide a comprehensive, detailed market-level answer about private markets trends, sectors, and deal dynamics. Use the web search results to provide current, specific information.
 
 Rules:
-- bullet points are fine
-- include trends or signals in private markets
-- highlight what matters for private market investors
-- avoid long paragraphs
-- do NOT give personal investment advice
-- focus on private markets context only
+- Write in clear paragraphs (not just bullet points)
+- Provide rich detail: specific deals, companies, valuations, trends, and market dynamics
+- Synthesize information from multiple web sources when available
+- Include concrete examples, numbers, and specific market signals
+- Explain the "why" behind trends, not just what's happening
+- Highlight what matters for private market investors
+- Do NOT give personal investment advice
+- Focus exclusively on private markets context
+- If web results mention public markets, ignore those parts and focus only on private market information
+- Aim for depth and insight, not surface-level summaries
 
-Focus on synthesis and insights, not explanation.
+Structure your answer with clear sections if helpful, but prioritize rich detail and comprehensive coverage.
 `;
 
 const DETAIL_PROMPT = `You are a private markets investment strategist specializing in secondary markets, venture capital, and private equity deals.
@@ -156,23 +160,25 @@ When discussing allocation, focus on:
 - Portfolio construction across private market opportunities
 - Secondary market dynamics and timing
 
-Provide a structured, decision-ready answer about private markets only.
+Provide a comprehensive, structured, decision-ready answer about private markets only. Use web search results to provide current, specific information.
 
 Rules:
-- use clear sections
-- include reasoning specific to private markets
-- include risks specific to private market investments
-- include tradeoffs between different private deals
-- keep concise but thoughtful
-- avoid fluff
+- Use clear sections with rich detail
+- Include specific examples, numbers, valuations, and concrete market signals
+- Synthesize information from multiple web sources when available
+- Include deep reasoning specific to private markets
+- Include comprehensive risks specific to private market investments
+- Include detailed tradeoffs between different private deals
+- Provide actionable insights, not surface-level summaries
+- If web results mention public markets, ignore those parts completely
 - NEVER suggest public market investments
 
 Format:
 
-Summary
-Key Factors (deal-specific, private market context)
-Risks (private market risks: illiquidity, valuation uncertainty, deal terms)
-Suggested Approach (which private deals/companies to consider, allocation across private opportunities)
+Summary (2-3 sentences)
+Key Factors (deal-specific, private market context with specific details, examples, and numbers)
+Risks (comprehensive private market risks: illiquidity, valuation uncertainty, deal terms, market dynamics)
+Suggested Approach (which private deals/companies to consider, allocation across private opportunities, timing considerations)
 `;
 
 const systemByTier: Record<ConciergeQueryTier, string> = {
@@ -252,7 +258,22 @@ async function answer(
 
   const webBlock = formatWebResults(webResults);
   const webSection = webBlock
-    ? `\n\nUse the following web search results ONLY if they relate to private markets (secondary markets, venture capital, private equity, private company deals). IGNORE any results about public markets (stocks, bonds, ETFs). If results don't apply to private markets, ignore them and answer from private markets knowledge only.\n\n--- Web search results ---\n${webBlock}\n---`
+    ? `\n\nCRITICAL: Use the following web search results to provide current, specific information about private markets. 
+
+IMPORTANT FILTERING RULES:
+- ONLY use information about private markets: venture capital, private equity, secondary markets, private company deals, pre-IPO companies, unicorns, startup funding rounds
+- COMPLETELY IGNORE any information about public markets: stocks, stock market, public companies, IPOs (unless discussing pre-IPO private companies), bonds, ETFs, public market indices
+- If a result is primarily about public markets, skip it entirely
+- Extract only private market insights from mixed results
+- Prioritize results that specifically mention "private markets", "venture capital", "private equity", "secondary market", "startup funding", "unicorn"
+
+Synthesize information from multiple sources when available. Provide specific details: company names, deal sizes, valuations, dates, investor names, market trends, and concrete examples.
+
+--- Web search results ---
+${webBlock}
+---
+
+Now provide a comprehensive answer using ONLY the private markets information from the results above.`
     : "";
 
   const system = systemByTier[tier] + "\n\n" + contextBlock + webSection;
@@ -265,8 +286,8 @@ async function answer(
   const maxTokensByTier: Record<ConciergeQueryTier, number> = {
     simple_fast: 350,
     simple: 400,
-    industry: 400,
-    detail: 600,
+    industry: 1000, // Increased for rich, detailed answers
+    detail: 1200, // Increased for comprehensive analysis
   };
   const maxTokens = maxTokensByTier[tier];
 
@@ -321,13 +342,32 @@ export async function POST(req: Request) {
   // Only search for industry + detail tiers (skip for simple_fast and simple)
   let webResults: BraveSearchResult[] = [];
   if (tier === "industry" || tier === "detail") {
-    const searchQuery = contextCompany
+    // Enhance search query to focus on private markets
+    // Add "private markets" context unless already present
+    const messageLower = message.toLowerCase();
+    const hasPrivateMarketsContext = 
+      messageLower.includes("private market") ||
+      messageLower.includes("private equity") ||
+      messageLower.includes("venture capital") ||
+      messageLower.includes("vc") ||
+      messageLower.includes("pe") ||
+      messageLower.includes("secondary") ||
+      messageLower.includes("pre-ipo") ||
+      messageLower.includes("unicorn");
+    
+    let searchQuery = contextCompany
       ? `${contextCompany.shortName} ${message}`.trim()
       : message;
+    
+    // Add private markets context if not present
+    if (!hasPrivateMarketsContext) {
+      searchQuery = `${searchQuery} private markets venture capital private equity`;
+    }
+    
     const tSearch = Date.now();
     const rawResults = await braveSearch(searchQuery, { timeoutMs: 8000 });
-    // Limit web results: 3 for industry, 10 for detail
-    const maxResults = tier === "industry" ? 3 : 10;
+    // Limit web results: 10 for industry (more results = richer answers), 15 for detail
+    const maxResults = tier === "industry" ? 10 : 15;
     webResults = rawResults.slice(0, maxResults);
     const searchMs = Date.now() - tSearch;
     logMeta("web_search", {
