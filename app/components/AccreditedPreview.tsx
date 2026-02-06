@@ -7,7 +7,12 @@ import { FileText, Landmark, Lock, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/app/lib/utils";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
 
 export function AccreditedPreview({
   onOpenConcierge,
@@ -28,7 +33,9 @@ export function AccreditedPreview({
             <FileText className="h-4 w-4 text-white/70" />
           </div>
           <div className="min-w-0">
-            <div className="text-[12px] font-semibold text-white/85">Deal documents</div>
+            <div className="text-[12px] font-semibold text-white/85">
+              Deal documents
+            </div>
             <div className="mt-1 text-[11px] text-white/55 blur-[3px]">
               Transfer agreement • KYC packet • cap table excerpt • broker memo
             </div>
@@ -40,7 +47,9 @@ export function AccreditedPreview({
             <Landmark className="h-4 w-4 text-white/70" />
           </div>
           <div className="min-w-0">
-            <div className="text-[12px] font-semibold text-white/85">Wire instructions</div>
+            <div className="text-[12px] font-semibold text-white/85">
+              Wire instructions
+            </div>
             <div className="mt-1 text-[11px] text-white/55 blur-[3px]">
               Beneficiary • Bank address • SWIFT • Reference format
             </div>
@@ -52,7 +61,9 @@ export function AccreditedPreview({
             <ShieldCheck className="h-4 w-4 text-white/70" />
           </div>
           <div className="min-w-0">
-            <div className="text-[12px] font-semibold text-white/85">Subscription forms</div>
+            <div className="text-[12px] font-semibold text-white/85">
+              Subscription forms
+            </div>
             <div className="mt-1 text-[11px] text-white/55 blur-[3px]">
               Accredited attestation • suitability • investor questionnaire
             </div>
@@ -95,15 +106,17 @@ export function AccreditedPreview({
               Make the mental movie
             </div>
             <div className="mt-1 text-[11px] text-white/55">
-              See the workflow: docs → wires → allocation. Everything instant, always contextual.
+              See the workflow: docs → wires → allocation. Everything instant,
+              always contextual.
             </div>
           </div>
           <Button
             variant="secondary"
             size="sm"
             onClick={onOpenConcierge}
-            className="shrink-0"
+            className="shrink-0 border-amber-500/20 bg-amber-500/5 text-white hover:bg-amber-500/10 hover:border-amber-500/30"
           >
+            <Sparkles className="h-4 w-4 text-amber-300/90" />
             Ask Concierge
           </Button>
         </div>

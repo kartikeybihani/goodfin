@@ -61,3 +61,5 @@ export type ConciergeMessage = {
   ts: number;
 };
 
+/** Classification tier for concierge: simple (quick), industry (sector/market), detail (deep). */
+export type ConciergeQueryTier = "simple" | "industry" | "detail";

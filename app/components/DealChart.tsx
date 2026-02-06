@@ -38,17 +38,25 @@ export function DealChart({
   animate?: boolean;
 }) {
   const width = 320;
+  const legendWidth = 72;
+  const chartWidth = width - legendWidth;
   const uid = React.useId();
   const lineFadeId = `lineFade-${uid}`;
   const glowId = `softGlow-${uid}`;
   const values = React.useMemo(() => series.map((s) => s.value), [series]);
-  const d = React.useMemo(() => buildPath(values, width, height), [values, height]);
+  const d = React.useMemo(
+    () => buildPath(values, chartWidth, height),
+    [values, chartWidth, height],
+  );
   const last = values.at(-1);
   const prev = values.at(-2);
   const delta = last != null && prev != null ? last - prev : 0;
 
   const tones: Record<typeof tone, { stroke: string; glow: string }> = {
-    neutral: { stroke: "rgba(255,255,255,0.70)", glow: "rgba(255,255,255,0.18)" },
+    neutral: {
+      stroke: "rgba(255,255,255,0.70)",
+      glow: "rgba(255,255,255,0.18)",
+    },
     good: { stroke: "rgba(52,211,153,0.95)", glow: "rgba(52,211,153,0.20)" },
     warn: { stroke: "rgba(251,191,36,0.95)", glow: "rgba(251,191,36,0.18)" },
     bad: { stroke: "rgba(244,63,94,0.95)", glow: "rgba(244,63,94,0.18)" },
@@ -65,7 +73,11 @@ export function DealChart({
       >
         <defs>
           <linearGradient id={lineFadeId} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor={tones[tone].stroke} stopOpacity="0.45" />
+            <stop
+              offset="0"
+              stopColor={tones[tone].stroke}
+              stopOpacity="0.45"
+            />
             <stop offset="1" stopColor={tones[tone].stroke} stopOpacity="1" />
           </linearGradient>
           <filter id={glowId} x="-40%" y="-40%" width="180%" height="180%">
@@ -83,7 +95,7 @@ export function DealChart({
               key={t}
               x1="0"
               y1={height * t}
-              x2={width}
+              x2={chartWidth}
               y2={height * t}
               stroke="rgba(255,255,255,0.06)"
               strokeWidth="1"

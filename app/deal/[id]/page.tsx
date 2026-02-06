@@ -2,12 +2,13 @@ import { notFound } from "next/navigation";
 import { DealDetailView } from "@/app/components/DealDetailView";
 import { getCompanyById } from "@/app/lib/mock";
 
-export default function DealPage({
+export default async function DealPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const company = getCompanyById(params.id);
+  const { id } = await params;
+  const company = getCompanyById(id);
   if (!company) notFound();
   return (
     <main className="min-h-dvh">
@@ -15,4 +16,3 @@ export default function DealPage({
     </main>
   );
 }
-
