@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Command,
   Lock,
-  Newspaper,
   Sparkles,
   Tag,
   TrendingUp,
@@ -114,10 +113,6 @@ export function DashboardCards({
             <Button variant="secondary" size="sm" className="h-9">
               <Tag className="h-3.5 w-3.5 text-white/70" />
               Deals
-            </Button>
-            <Button variant="secondary" size="sm" className="h-9">
-              <Newspaper className="h-3.5 w-3.5 text-white/70" />
-              News
             </Button>
             <Button
               variant="secondary"
