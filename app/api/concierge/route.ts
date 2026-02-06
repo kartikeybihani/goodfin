@@ -213,7 +213,7 @@ async function classify(
   const start = Date.now();
   const rawOut = await chat(
     [{ role: "user", content: CLASSIFY_PROMPT + userMessage }],
-    { requestId, max_tokens: 200, temperature: 0 }
+    { requestId, max_tokens: 400, temperature: 0 }
   );
   const tier = parseTier(rawOut);
   const elapsed = Date.now() - start;
@@ -277,7 +277,7 @@ async function answer(
 
   // Hard cap tokens by tier
   const maxTokensByTier: Record<ConciergeQueryTier, number> = {
-    simple_fast: 80,
+    simple_fast: 200,
     simple: 400,
     industry: 400,
     detail: 600,

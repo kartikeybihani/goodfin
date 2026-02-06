@@ -46,9 +46,10 @@ export function DealCard({ company }: { company: Company }) {
                   <span className="truncate">{company.shortName}</span>
                   <ArrowUpRight className="h-3.5 w-3.5 text-white/40 transition group-hover:text-white/70" />
                 </CardTitle>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <div className="mt-1 flex flex-wrap items-center gap-1">
                   <Badge
-                    className="max-w-[140px] py-0.5 text-[10px]"
+                    size="sm"
+                    className="max-w-[100px]"
                     tone="neutral"
                     title={company.sector}
                   >
@@ -56,11 +57,7 @@ export function DealCard({ company }: { company: Company }) {
                       {company.sector}
                     </span>
                   </Badge>
-                  <Badge
-                    className="shrink-0 py-0.5 text-[10px]"
-                    tone="neutral"
-                    title={company.stage}
-                  >
+                  <Badge size="sm" tone="neutral" title={company.stage}>
                     {company.stage}
                   </Badge>
                 </div>
@@ -119,8 +116,8 @@ export function DealCard({ company }: { company: Company }) {
                 <div className="min-w-0 truncate text-[11px] text-white/55">
                   Valuation trend (indicative)
                 </div>
-                <Badge tone={tone} className="shrink-0 py-0.5">
-                  <Sparkles className="h-3 w-3" />
+                <Badge size="sm" tone={tone} className="shrink-0">
+                  <Sparkles className="h-2.5 w-2.5" />
                   Signal
                 </Badge>
               </div>

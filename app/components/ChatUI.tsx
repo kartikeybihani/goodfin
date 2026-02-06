@@ -2,12 +2,7 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ArrowRight,
-  CircleDollarSign,
-  ShieldAlert,
-  Sparkles,
-} from "lucide-react";
+import { CircleDollarSign, FileText, Lock, TrendingUp } from "lucide-react";
 
 import type { ConciergeMessage } from "@/app/lib/types";
 import { cn } from "@/app/lib/utils";
@@ -149,24 +144,24 @@ export function ChatUI({
       <div className="shrink-0 px-4 pt-4">
         <div className="grid grid-cols-2 gap-2.5">
           {quickBtn(
-            <Sparkles className="h-4 w-4" />,
-            "Summarize",
+            <FileText className="h-4 w-4" />,
+            "Summarize deal",
             "Summarize this deal",
           )}
           {quickBtn(
-            <ShieldAlert className="h-4 w-4" />,
-            "Key risks",
-            "Key risks?",
+            <Lock className="h-4 w-4" />,
+            "Ask & lockup",
+            "What’s the ask and lockup?",
           )}
           {quickBtn(
             <CircleDollarSign className="h-4 w-4" />,
-            "Allocate $50k",
-            "Should I allocate $50k?",
+            "Allocate $100k",
+            "Should I allocate $100k?",
           )}
           {quickBtn(
-            <ArrowRight className="h-4 w-4" />,
-            "Compare",
-            "Compare to Stripe",
+            <TrendingUp className="h-4 w-4" />,
+            "Valuation trend",
+            "What’s the valuation trend?",
           )}
         </div>
       </div>
